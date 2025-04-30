@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CreateUserDto } from './dto/create-user-dto';
 import * as bcrypt from 'bcryptjs';
+import { UpdateUserDto } from './dto/update-user-dto';
 @Injectable()
 export class UsersService {
     constructor (private prismaService : PrismaService){}
@@ -43,6 +44,17 @@ export class UsersService {
     }
 
 
+    async updateUserinfo(updateUserDto: UpdateUserDto, id : number){
+        await this.prismaService.user.updateMany({
+            where: {id: id},
+            data : updateUserDto
+        })
+    }
 
+    async deleteUser(id : number){
+        await this.prismaService.user.delete({
+            where: {id: id}
+        })
+    }
 
 }

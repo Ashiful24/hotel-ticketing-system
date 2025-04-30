@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user-dto';
+import { UpdateUserDto } from './dto/update-user-dto';
 
 @Controller('users')
 export class UsersController {
@@ -26,5 +27,22 @@ async findAuser(@Param('id', ParseIntPipe) id:number){
 
     return await this.userService.getAUser(id);
 }
+
+// update an user info by id
+@Put('/update/:id')
+async updateUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUserDto : UpdateUserDto)
+    {
+       return await this.userService.updateUserinfo(updateUserDto, id);
+    }
+
+
+// delete an user by id
+@Delete('/delete/:id')
+async deleteUser(@Param('id', ParseIntPipe) id: number)
+    {
+       return await this.userService.deleteUser(id);
+    }
 
 }
