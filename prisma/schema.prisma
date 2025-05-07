@@ -31,9 +31,8 @@ model user {
   userTypes    user_userType[]
   userRoles    user_userRole[]
   departments  user_department[]
-  
-  
-  
+  tickets tickets[]
+   assignment  ticketAssignment[]
 }
 
 model userTypes {
@@ -80,6 +79,7 @@ model department {
   isActive Boolean @default(true)
 
   users user_department[]
+  issueTypes  issueType[]
 
 }
 
@@ -90,4 +90,55 @@ model user_department {
 
   user user @relation(fields: [userId], references: [id])
   department department @relation(fields: [departmentId], references: [id])
+}
+
+model tickets {
+  id  Int @id @default(autoincrement())
+  ticketCode      String @unique
+  roomNumber      Int
+  title           String
+  description     String
+  rating          Int?
+  feedback        String?
+  creatorId       Int
+  priorityId      Int
+  issueTypeId     Int
+  createdAt       DateTime  @default(now())
+
+  user            user     @relation(fields: [creatorId], references: [id])
+  priority        ticketPriority @relation(fields: [priorityId], references: [id])
+  issueType       issueType @relation(fields: [issueTypeId], references: [id])
+  assignment  ticketAssignment[]
+
+}
+
+model ticketPriority {
+  id     Int      @id @default(autoincrement())
+  name   String   @unique
+
+  tickets tickets[]
+}
+
+model issueType {
+  id     Int      @id @default(autoincrement())
+  name   String   @unique
+   departmentId Int
+
+  tickets tickets[]
+  department   department   @relation(fields: [departmentId], references: [id])
+
+}
+
+model ticketAssignment {
+  id         Int      @id @default(autoincrement())
+  ticketId   Int
+  assignTo    Int
+  assignedAt DateTime @default(now())
+  deadline DateTime?
+  closeAt DateTime?
+  comment    String?
+
+  staff      user     @relation(fields: [assignTo], references: [id])
+  ticket     tickets   @relation(fields: [ticketId], references: [id])
+   @@unique([ticketId]) // One ticket = one assignment
 }

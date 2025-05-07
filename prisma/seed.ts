@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -13,6 +13,7 @@ async function main() {
       { departmentName: 'IT' },
       { departmentName: 'Finance and Accounts' },      
     ],
+    skipDuplicates: true,
   });
 
   // Seed User Types
@@ -23,6 +24,7 @@ async function main() {
       { userTypeName: 'Manager' },
       { userTypeName: 'Admin' },
     ],
+    skipDuplicates: true,
   });
 
   // Seed User Roles
@@ -39,7 +41,40 @@ async function main() {
       { userRoleName: 'Can-Reopen-Ticket'},
       
     ],
+    skipDuplicates: true,
   });
+
+  // Fetch existing departments
+  const departments = await prisma.department.findMany();
+
+  const departmentMap = Object.fromEntries(
+    departments.map((d) => [d.departmentName, d.id])
+  );
+
+  // Seed ticket priorities
+  await prisma.ticketPriority.createMany({
+    data: [
+      { name: 'Low' },
+      { name: 'Medium' },
+      { name: 'High' },
+    ],
+    skipDuplicates: true,
+  });
+
+  // Seed issue types with corresponding departmentId
+  await prisma.issueType.createMany({
+    data: [
+      { name: 'Room Cleaning', departmentId: departmentMap['Housekeeping'] },
+      { name: 'AC Repair', departmentId: departmentMap['Maintenance'] },
+      { name: 'Billing Issue', departmentId: departmentMap['Finance and Accounts'] },
+      { name: 'WiFi Issue', departmentId: departmentMap['IT'] },
+      { name: 'Late Room Service', departmentId: departmentMap['Room Service'] },
+      { name: 'Booking Error', departmentId: departmentMap['Reception'] },
+    ],
+    skipDuplicates: true,
+  });
+
+  console.log('✅ Seed complete!');
 }
 
 main()
