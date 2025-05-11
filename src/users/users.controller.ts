@@ -20,7 +20,7 @@ export class UsersController {
     //get all users details
     
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles("Admin",)
+    @Roles("Admin", "Staff")
     @Get('/all')
     async alluserDetails() {
 

@@ -74,7 +74,19 @@ async function main() {
     skipDuplicates: true,
   });
 
-  console.log('✅ Seed complete!');
+  // Seed status types 
+  await prisma.statusType.createMany({
+    data: [
+      {name: "Open"},
+      {name: "In Progress"},
+      {name: "Resolved"},
+      {name: "Closed"},
+      {name: "Reopend"},
+    ],
+    skipDuplicates: true,
+  });
+
+  console.log('Seed complete!');
 }
 
 main()

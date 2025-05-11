@@ -1,11 +1,14 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
 import { DepartmentService } from './department.service';
 import { CreateDepartmentDto } from './dto/create-department-dto';
 import { UpdateDepartmentDto } from './dto/update-department-dto';
 import { AssignDepartmentDto } from './dto/assign-department-dto';
 import { UnAssignDepartmentDto } from './unassign-department-dto';
 import { Roles } from 'src/roles/roles.decorator';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { RolesGuard } from 'src/roles/roles.guard';
 
+@UseGuards(AuthGuard, RolesGuard)
 @Controller('department')
 export class DepartmentController {
 
@@ -17,7 +20,7 @@ export class DepartmentController {
         await this.departmentService.addNewDepartment(createDepartmentDTO);
     }
 
-    @Roles("Admin")
+    @Roles("Admin", "Staff")
     @Get('/list')
     async getAllDepartment() {
         return this.departmentService.getDepartmentList();

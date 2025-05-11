@@ -32,7 +32,8 @@ model user {
   userRoles    user_userRole[]
   departments  user_department[]
   tickets tickets[]
-   assignment  ticketAssignment[]
+  assignment  ticketAssignment[]
+  statuses   ticketStatus[]
 }
 
 model userTypes {
@@ -103,12 +104,15 @@ model tickets {
   creatorId       Int
   priorityId      Int
   issueTypeId     Int
+  currentStatusId Int
   createdAt       DateTime  @default(now())
 
   user            user     @relation(fields: [creatorId], references: [id])
   priority        ticketPriority @relation(fields: [priorityId], references: [id])
+  statusType      statusType @relation(fields: [currentStatusId], references: [id])
   issueType       issueType @relation(fields: [issueTypeId], references: [id])
   assignment  ticketAssignment[]
+  statuses    ticketStatus[]
 
 }
 
@@ -122,11 +126,19 @@ model ticketPriority {
 model issueType {
   id     Int      @id @default(autoincrement())
   name   String   @unique
-   departmentId Int
+  departmentId Int
 
   tickets tickets[]
   department   department   @relation(fields: [departmentId], references: [id])
 
+}
+
+model statusType {
+  id Int @id @default(autoincrement())
+  name String @unique
+
+  tickets tickets[]
+  statuses ticketStatus[]
 }
 
 model ticketAssignment {
@@ -141,4 +153,18 @@ model ticketAssignment {
   staff      user     @relation(fields: [assignTo], references: [id])
   ticket     tickets   @relation(fields: [ticketId], references: [id])
    @@unique([ticketId]) // One ticket = one assignment
+}
+
+model ticketStatus{
+  id Int @id @default(autoincrement())
+  ticketId Int
+  changnedBy Int
+  statusId Int
+  changedAt DateTime @default(now())
+  comment String
+
+  ticket tickets  @relation(fields: [ticketId], references: [id])
+  user user       @relation(fields: [changnedBy], references: [id])
+  status statusType @relation(fields: [statusId], references: [id])
+  
 }
