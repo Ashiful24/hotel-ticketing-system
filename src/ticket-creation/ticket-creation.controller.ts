@@ -1,16 +1,18 @@
-import { BadRequestException, Body, Controller, DefaultValuePipe, Get, Param, ParseDatePipe, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, DefaultValuePipe, Delete, Get, Param, ParseDatePipe, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { CreateTicketDto } from './dto/create-ticket-dto';
 import { TicketCreationService } from './ticket-creation.service';
 import { RolesGuard } from 'src/roles/roles.guard';
 import { Roles } from 'src/roles/roles.decorator';
+import { UpdateTicketDto } from './dto/update-ticket-dto';
 
 @Controller('ticket')
 export class TicketCreationController {
 
   constructor(private ticketCreationService: TicketCreationService) { }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("Guest")
   @Post('create')
   async creatTicket(@Req() req, @Body() ticketDto: CreateTicketDto) {
     const userId = req.user.id;
@@ -18,12 +20,28 @@ export class TicketCreationController {
   }
 
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles("Guest", "Staff")
-  @Get('guest-tickets')
-  async myTickets(@Req() req) {
-    const userId = req.user.id;
-    return await this.ticketCreationService.getTicketsByUser(userId);
+  @Roles("Guest")
+  @Get('edit/:id')
+  async myTicketsinfo(@Param('id', ParseIntPipe) id:number) {
+    return await this.ticketCreationService.getTicketsById(id);
   }
+
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("Guest")
+  @Put('edit/:id')
+  async updateInfo(@Param('id', ParseIntPipe) id:number , @Body() updateDto: UpdateTicketDto) {
+    return await this.ticketCreationService.updateTicketsById(id, updateDto);
+  }
+
+
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("Admin")
+  @Delete('delete/:id')
+  async deleteTicket(@Param('id', ParseIntPipe) id:number ) {
+    return await this.ticketCreationService.deleteTicketsById(id);
+  }
+
+
 
   @Put('reopen/:id')
   @UseGuards(AuthGuard)
@@ -32,10 +50,14 @@ export class TicketCreationController {
     return this.ticketCreationService.reopenTicket(id, userId, "Your Ticket has been Reopened Successfully");
   }
 
+
+  @UseGuards(AuthGuard)
   @Get("details/:id")
   async getTicketDetails(@Param('id', ParseIntPipe) id: number){
      return this.ticketCreationService.getTicketDetailsById(id);
   }
+
+
 
   @Get("list")
   async getAllTicketDetails(

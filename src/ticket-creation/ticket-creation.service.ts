@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket-dto';
 import { create } from 'domain';
+import { UpdateTicketDto } from './dto/update-ticket-dto';
 
 @Injectable()
 export class TicketCreationService {
@@ -32,16 +33,66 @@ export class TicketCreationService {
     return ticket;
   }
 
-  async getTicketsByUser(userId: number) {
-    return this.prismaService.tickets.findMany({
-      where: { creatorId: userId },
-      include: {
-        priority: true,
-        issueType: true,
-        statuses: true
-      },
+  async getTicketsById(userId: number) {
+     const existingTicket = await this.prismaService.tickets.findUnique({
+      where: { id: userId },
+      select:{
+        roomNumber: true,
+        title:true,
+        description:true,
+        priorityId: true,
+        issueTypeId: true
+      }
     });
+    
+    if (!existingTicket) {
+      throw new NotFoundException(`Ticket with ID ${userId} not found`);
+    }
+
+    return existingTicket;
+
   }
+
+
+
+  async updateTicketsById(id: number, updateDto: UpdateTicketDto) {
+
+    const existingTicket = await this.prismaService.tickets.findUnique({
+      where: { id },
+    });
+
+    if (!existingTicket) {
+      throw new NotFoundException(`Ticket with ID ${id} not found`);
+    }
+
+
+    return await this.prismaService.tickets.update({
+      where: { id: id },
+      data: updateDto
+    })
+  }
+
+
+
+
+  async deleteTicketsById(id: number){
+    const existingTicket = await this.prismaService.tickets.findUnique({
+      where: { id },
+    });
+
+    if (!existingTicket) {
+      throw new NotFoundException(`Ticket with ID ${id} not found`);
+    }
+
+    await this.prismaService.tickets.delete({
+      where: {id: id}
+    })
+
+    return { message: `Ticket with ID ${id} has been deleted successfully.` };
+
+  }
+
+
 
   async reopenTicket(ticketId: number, userId: number, comment?: string) {
     // Get the ticket with creator info

@@ -21,21 +21,21 @@ export class TicketAssingmentService {
       throw new BadRequestException('Ticket already assigned');
     }
 
-      // Get the ticket 
-      const ticket = await this.prismaService.tickets.findUnique({
-        where: { id: assignDto.ticketId },
-      
-      })
+    // Get the ticket 
+    const ticket = await this.prismaService.tickets.findUnique({
+      where: { id: assignDto.ticketId },
 
-     if(!ticket) throw new BadRequestException("Ticket not found");
+    })
+
+    if (!ticket) throw new BadRequestException("Ticket not found");
 
     // Check if the ticket is currently Open
     if (ticket.currentStatusId !== 1) {
-      throw new Error('Ticket must be Open to assign it');
+      throw new BadRequestException('Ticket must be Open to assign it');
     }
 
     // Create new assignment
-    const ticketAssignment = this.prismaService.ticketAssignment.create({
+    const ticketAssignment = await this.prismaService.ticketAssignment.create({
       data: {
         ticketId: assignDto.ticketId,
         assignTo: assignDto.assignTo
