@@ -45,7 +45,7 @@ export class AuthService {
 
     async login(loginDto: LoginDto) : Promise<{accessToken : string}>{
         // Find the user based on email
-        const  user = await this.prismaService.user.findFirst({
+        const  user = await this.prismaService.user.findUnique({
             where : {
                 email : loginDto.email
             }
