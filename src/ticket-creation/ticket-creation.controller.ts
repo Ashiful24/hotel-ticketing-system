@@ -5,12 +5,15 @@ import { TicketCreationService } from './ticket-creation.service';
 import { RolesGuard } from 'src/roles/roles.guard';
 import { Roles } from 'src/roles/roles.decorator';
 import { UpdateTicketDto } from './dto/update-ticket-dto';
+import { AuditInterceptor } from 'src/audit/audit.interceptor';
+import { UseInterceptors } from '@nestjs/common';
 
 @Controller('ticket')
 export class TicketCreationController {
 
   constructor(private ticketCreationService: TicketCreationService) { }
 
+  @UseInterceptors(AuditInterceptor)
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("Guest")
   @Post('create')
@@ -26,6 +29,7 @@ export class TicketCreationController {
     return await this.ticketCreationService.getTicketsById(id);
   }
 
+  @UseInterceptors(AuditInterceptor)
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("Guest")
   @Put('edit/:id')
@@ -34,6 +38,7 @@ export class TicketCreationController {
   }
 
 
+  @UseInterceptors(AuditInterceptor)
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("Admin")
   @Delete('delete/:id')
@@ -43,6 +48,7 @@ export class TicketCreationController {
 
 
 
+  @UseInterceptors(AuditInterceptor)
   @Put('reopen/:id')
   @UseGuards(AuthGuard)
   async reopenTicket(@Param('id', ParseIntPipe) id: number, @Req() req) {
@@ -50,7 +56,7 @@ export class TicketCreationController {
     return this.ticketCreationService.reopenTicket(id, userId, "Your Ticket has been Reopened Successfully");
   }
 
-
+  
   @UseGuards(AuthGuard)
   @Get("details/:id")
   async getTicketDetails(@Param('id', ParseIntPipe) id: number){

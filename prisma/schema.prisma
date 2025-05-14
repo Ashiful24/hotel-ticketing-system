@@ -34,6 +34,7 @@ model user {
   tickets tickets[]
   assignment  ticketAssignment[]
   statuses   ticketStatus[]
+  auditLog auditLog[]
 }
 
 model userTypes {
@@ -167,4 +168,16 @@ model ticketStatus{
   user user       @relation(fields: [changnedBy], references: [id])
   status statusType @relation(fields: [statusId], references: [id])
   
+}
+
+model auditLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  action      String
+  method      String
+  path        String
+  requestBody String
+  timestamp   DateTime @default(now())
+
+  user user @relation(fields: [userId], references: [id])
 }

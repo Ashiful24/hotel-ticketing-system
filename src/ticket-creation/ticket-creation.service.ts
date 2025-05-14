@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket-dto';
 import { create } from 'domain';
@@ -6,34 +6,50 @@ import { UpdateTicketDto } from './dto/update-ticket-dto';
 
 @Injectable()
 export class TicketCreationService {
+   
+   private readonly logger = new Logger(TicketCreationService.name);
 
-  constructor(private prismaService: PrismaService) { }
+   constructor(private prismaService: PrismaService) { }
 
   async createTicket(userId: number, ticketDto: CreateTicketDto) {
+    this.logger.log(`Starting ticket creation for user ID: ${userId}`);
 
-    const ticket = await this.prismaService.tickets.create({
-      data: {
-        creatorId: userId,
-        ticketCode: `TICKET-${Date.now()}`,
-        roomNumber: ticketDto.roomNumber,
-        title: ticketDto.title,
-        description: ticketDto.description,
-        priorityId: ticketDto.priorityId,
-        issueTypeId: ticketDto.issueTypeId,
-        currentStatusId: 1,
-        statuses: {
-          create: {
-            statusId: 1,
-            changnedBy: userId,
-            comment: "Your ticket has been created",
+    try {
+      const ticket = await this.prismaService.tickets.create({
+        data: {
+          creatorId: userId,
+          ticketCode: `TICKET-${Date.now()}`,
+          roomNumber: ticketDto.roomNumber,
+          title: ticketDto.title,
+          description: ticketDto.description,
+          priorityId: ticketDto.priorityId,
+          issueTypeId: ticketDto.issueTypeId,
+          currentStatusId: 1,
+          statuses: {
+            create: {
+              statusId: 1,
+              changnedBy: userId,
+              comment: "Your ticket has been created",
+            }
           }
-        }
-      },
-    });
-    return ticket;
+        },
+      });
+      this.logger.log(`Ticket created successfully with ID: ${ticket.id}`);
+      return ticket;
+    } catch (error) {
+      this.logger.error(
+        `Failed to create ticket for user ID: ${userId}`,
+        error.stack,
+      );
+      throw error;
+    }
+
   }
 
   async getTicketsById(userId: number) {
+
+     this.logger.log(`Fetching ticket with ID: ${userId}`);
+
      const existingTicket = await this.prismaService.tickets.findUnique({
       where: { id: userId },
       select:{
@@ -46,9 +62,11 @@ export class TicketCreationService {
     });
     
     if (!existingTicket) {
+      this.logger.warn(`Ticket with ID ${userId} not found`);
       throw new NotFoundException(`Ticket with ID ${userId} not found`);
     }
-
+    
+    this.logger.log(`Ticket with ID ${userId} retrieved successfully`);
     return existingTicket;
 
   }
@@ -56,31 +74,39 @@ export class TicketCreationService {
 
 
   async updateTicketsById(id: number, updateDto: UpdateTicketDto) {
+    this.logger.log(`Attempting to update ticket with ID: ${id}`);
 
     const existingTicket = await this.prismaService.tickets.findUnique({
       where: { id },
     });
 
     if (!existingTicket) {
+      this.logger.warn(`Ticket with ID ${id} not found for update`);
       throw new NotFoundException(`Ticket with ID ${id} not found`);
     }
 
-
-    return await this.prismaService.tickets.update({
+    const updateTicket = await this.prismaService.tickets.update({
       where: { id: id },
       data: updateDto
     })
+
+    this.logger.log(`Ticket with ID ${id} successfully updated`);
+    return updateTicket;
+
   }
 
 
 
 
   async deleteTicketsById(id: number){
+    this.logger.log(`Attempting to delete ticket with ID: ${id}`);
+
     const existingTicket = await this.prismaService.tickets.findUnique({
       where: { id },
     });
 
     if (!existingTicket) {
+      this.logger.warn(`Delete failed: Ticket with ID ${id} not found`);
       throw new NotFoundException(`Ticket with ID ${id} not found`);
     }
 
@@ -88,6 +114,7 @@ export class TicketCreationService {
       where: {id: id}
     })
 
+    this.logger.log(`Ticket with ID ${id} successfully deleted`);
     return { message: `Ticket with ID ${id} has been deleted successfully.` };
 
   }
@@ -95,6 +122,8 @@ export class TicketCreationService {
 
 
   async reopenTicket(ticketId: number, userId: number, comment?: string) {
+    this.logger.log(`User ${userId} is attempting to reopen ticket ${ticketId}`);
+
     // Get the ticket with creator info
     const ticket = await this.prismaService.tickets.findUnique({
       where: { id: ticketId },
@@ -106,16 +135,19 @@ export class TicketCreationService {
     });
 
     if (!ticket) {
+      this.logger.warn(`Ticket with ID ${ticketId} not found`);
       throw new Error('Ticket not found');
     }
 
     // Check if the user is the creator
     if (ticket.creatorId !== userId) {
+      this.logger.warn(`User ${userId} is not authorized to reopen ticket ${ticketId}`);
       throw new Error('Only the creator of this ticket can reopen it');
     }
 
     // Check if the ticket is currently CLOSED
     if (ticket.currentStatusId !== 4) {
+      this.logger.warn(`Ticket ${ticketId} is not CLOSED (current status: ${ticket.currentStatusId})`);
       throw new Error('Ticket must be CLOSED to reopen it');
     }
 
@@ -137,10 +169,15 @@ export class TicketCreationService {
       },
     });
 
+     this.logger.log(`Ticket ${ticketId} reopened by user ${userId}`);
     return { message: 'Ticket reopened successfully' };
   }
 
+
+
+
   async getTicketDetailsById(id: number) {
+    this.logger.log(`Fetching ticket details for ID: ${id}`);
 
     const ticket = await this.prismaService.tickets.findUnique({
       where: { id: id },
@@ -172,12 +209,15 @@ export class TicketCreationService {
             }
           }
         }
-
       }
-
     })
 
-    if (!ticket) throw new NotFoundException("Ticket not found");
+    if (!ticket){
+       this.logger.warn(`Ticket with ID ${id} not found`);
+       throw new NotFoundException("Ticket not found");
+    } 
+
+     this.logger.log(`Ticket with ID ${id} found successfully`);
 
     const formattedTicket = {
       ticketID: ticket.id,
@@ -226,11 +266,13 @@ export class TicketCreationService {
     searchQuery?: number,
     searchField?: 'ticketId' | 'creatorId' | 'assigneeId'
   ) {
+     this.logger.log(`Fetching all tickets (Page: ${page}, Limit: ${limit})`);
 
     const where: any = {};
     const skip = (page - 1) * limit;
 
     if (searchQuery && searchField) {
+      this.logger.log(`Applying search query: ${searchQuery} on field: ${searchField}`);
       if (searchField === 'ticketId') {
         where.id = searchQuery
       } else if (searchField === 'creatorId') {
@@ -249,19 +291,24 @@ export class TicketCreationService {
     
   
     if (tab === 'unassigned') {
+      this.logger.log('Filtering for unassigned tickets');
       where.assignment = { none: {} };
     } else if (tab === 'resolved') {
+      this.logger.log('Filtering for resolved tickets');
       where.currentStatusId = 3;
     } else if (tab === 'due') {
+      this.logger.log('Filtering for due tickets');
       where.currentStatusId = { in: [1,2,5] };
     }
 
 
     if (filters.priorityId) {
+       this.logger.log(`Filtering by priorityId: ${filters.priorityId}`);
       where.priorityId = filters.priorityId;
     }
 
     if (filters.issueCategoryId) {
+      this.logger.log(`Filtering by issueCategoryId: ${filters.issueCategoryId}`);
       where.issueType = {
         department: {
           id: filters.issueCategoryId
@@ -270,14 +317,17 @@ export class TicketCreationService {
     }
 
     if (filters.issueTypeId) {
+      this.logger.log(`Filtering by issueTypeId: ${filters.issueTypeId}`);
       where.issueTypeId = filters.issueTypeId;
     }
 
     if (filters.statusId) {
+      this.logger.log(`Filtering by statusId: ${filters.statusId}`);
       where.currentStatusId = filters.statusId;
     }
 
     if (filters.date) {
+       this.logger.log(`Filtering by date: ${filters.date}`);
       const selectedDate = new Date(filters.date);
       const nextDay = new Date(selectedDate);
       nextDay.setDate(selectedDate.getDate() + 1);
@@ -289,6 +339,7 @@ export class TicketCreationService {
     }
 
 
+    this.logger.log('Fetching tickets from the database...');
     const tickets = await this.prismaService.tickets.findMany({
       where,
       take: limit,
@@ -318,6 +369,7 @@ export class TicketCreationService {
     const totalCount = await this.prismaService.tickets.count({
       where,
     });
+    this.logger.log(`Found ${tickets.length} tickets`);
 
     const formattedDetails = tickets.map(ticket => ({
       ticketId: ticket.id,
@@ -331,6 +383,8 @@ export class TicketCreationService {
       assignTo: ticket.assignment?.[0]?.staff.firstName ?? 'Unassigned',
 
     }))
+
+    this.logger.log('Returning formatted ticket details');
     return {
       data: formattedDetails,
       currentPage: page,
