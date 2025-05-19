@@ -8,7 +8,7 @@ import { RolesGuard } from 'src/roles/roles.guard';
 
 @Injectable()
 export class TicketAssingmentService {
-  private readonly logger = new Logger(TicketAssingmentService.name);
+  private readonly logger = Logger;
   constructor(private prismaService: PrismaService) { }
 
 
@@ -91,7 +91,7 @@ export class TicketAssingmentService {
 
     if (!assignment) {
       this.logger.warn(`No assignment found for ticket ID ${reassignDto.ticketId}`);
-      throw new NotFoundException('No assignment found for this ticket');
+      throw new BadRequestException('No assignment found for this ticket');
     }
 
 
@@ -119,9 +119,7 @@ export class TicketAssingmentService {
 
     // Prevent reassignment to the same person
     if (assignment.assignTo === reassignDto.assignTo) {
-      this.logger.warn(
-        `Ticket ID ${reassignDto.ticketId} is already assigned to user ID ${reassignDto.assignTo}`
-      );
+      this.logger.warn(`Ticket ID ${reassignDto.ticketId} is already assigned to user ID ${reassignDto.assignTo}`);
       throw new BadRequestException("Ticket is already assigned to this user");
     }
 

@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket-dto';
 import { create } from 'domain';
@@ -136,19 +136,19 @@ export class TicketCreationService {
 
     if (!ticket) {
       this.logger.warn(`Ticket with ID ${ticketId} not found`);
-      throw new Error('Ticket not found');
+      throw new BadRequestException('Ticket not found');
     }
 
     // Check if the user is the creator
     if (ticket.creatorId !== userId) {
       this.logger.warn(`User ${userId} is not authorized to reopen ticket ${ticketId}`);
-      throw new Error('Only the creator of this ticket can reopen it');
+      throw new BadRequestException('Only the creator of this ticket can reopen it');
     }
 
     // Check if the ticket is currently CLOSED
     if (ticket.currentStatusId !== 4) {
       this.logger.warn(`Ticket ${ticketId} is not CLOSED (current status: ${ticket.currentStatusId})`);
-      throw new Error('Ticket must be CLOSED to reopen it');
+      throw new BadRequestException('Ticket must be CLOSED to reopen it');
     }
 
     // Add to status history
