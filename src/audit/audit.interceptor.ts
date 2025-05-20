@@ -43,7 +43,7 @@ export class AuditInterceptor implements NestInterceptor {
         } catch (err) {
           console.error('Audit log failed:', err);
         }
-        return response; // ✅ You must return the original response
+        return response; // You must return the original response
       }),
     );
   }

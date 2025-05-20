@@ -247,7 +247,9 @@ export class TicketCreationService {
 
     }
 
-    return formattedTicket;
+    return {
+      Data : formattedTicket
+    }
 
   }
 

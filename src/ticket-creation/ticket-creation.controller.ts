@@ -26,7 +26,12 @@ export class TicketCreationController {
   @Roles("Guest")
   @Get('edit/:id')
   async myTicketsinfo(@Param('id', ParseIntPipe) id:number) {
-    return await this.ticketCreationService.getTicketsById(id);
+    const result =  await this.ticketCreationService.getTicketsById(id);
+
+    return {
+       data : result,
+       message :`These are information of ticketID : ${id}`
+    };
   }
 
   @UseInterceptors(AuditInterceptor)

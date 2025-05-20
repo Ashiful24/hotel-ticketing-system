@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TicketCreationService } from './ticket-creation.service';
 import { PrismaService } from 'src/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket-dto';
+import { UpdateTicketDto } from './dto/update-ticket-dto';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('TicketCreationService', () => {
   let service: TicketCreationService;
@@ -9,6 +11,12 @@ describe('TicketCreationService', () => {
 
   const mockPrismaService = {
     tickets: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    ticketStatus: {
       create: jest.fn(),
     },
   };
@@ -33,6 +41,7 @@ describe('TicketCreationService', () => {
     expect(service).toBeDefined();
   });
 
+  // =========Create Ticket =============
   describe('createTicket', () => {
     it('should create a ticket successfully', async () => {
       const userId = 1;
@@ -99,4 +108,146 @@ describe('TicketCreationService', () => {
       await expect(service.createTicket(userId, dto)).rejects.toThrow('Database error');
     });
   });
+
+  // ===========Update ticket =============
+  describe('updateTicketsById', () => {
+    const ticketId = 1;
+
+    const updateDto: UpdateTicketDto = {
+      roomNumber: 101,
+      title: 'Air Conditioner Broken',
+      description: 'The AC in room 101 is not working.',
+      priorityId: 2,
+      issueTypeId: 3,
+    };
+
+    it('should throw NotFoundException if ticket does not exist', async () => {
+      mockPrismaService.tickets.findUnique.mockResolvedValue(null);
+
+      await expect(service.updateTicketsById(ticketId, updateDto)).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.tickets.findUnique).toHaveBeenCalledWith({ where: { id: ticketId } });
+    });
+
+    it('should update and return the ticket if it exists', async () => {
+      const existingTicket = {
+        id: ticketId,
+        roomNumber: 101,
+        title: 'Old Title',
+        description: 'Old Desc',
+        priorityId: 1,
+        issueTypeId: 1,
+      };
+
+      const updatedTicket = { id: ticketId, ...updateDto };
+
+      mockPrismaService.tickets.findUnique.mockResolvedValue(existingTicket);
+      mockPrismaService.tickets.update.mockResolvedValue(updatedTicket);
+
+      const result = await service.updateTicketsById(ticketId, updateDto);
+
+      expect(result).toEqual(updatedTicket);
+      expect(mockPrismaService.tickets.findUnique).toHaveBeenCalledWith({ where: { id: ticketId } });
+      expect(mockPrismaService.tickets.update).toHaveBeenCalledWith({
+        where: { id: ticketId },
+        data: updateDto,
+      });
+    });
+  });
+
+  // ===========Delete ticket =============
+  describe('DeleteTicketsById', () => {
+
+    const ticketId = 42;
+
+    it('should throw NotFoundException if ticket does not exist', async () => {
+      mockPrismaService.tickets.findUnique.mockResolvedValue(null);
+
+      await expect(service.deleteTicketsById(ticketId)).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.tickets.findUnique).toHaveBeenCalledWith({ where: { id: ticketId } });
+      expect(mockPrismaService.tickets.delete).not.toHaveBeenCalled();
+    });
+
+    it('should delete the ticket and return success message', async () => {
+      const existingTicket = { id: ticketId, title: 'Sample Ticket' };
+
+      mockPrismaService.tickets.findUnique.mockResolvedValue(existingTicket);
+      mockPrismaService.tickets.delete.mockResolvedValue(undefined); // delete returns void
+
+      const result = await service.deleteTicketsById(ticketId);
+
+      expect(mockPrismaService.tickets.findUnique).toHaveBeenCalledWith({ where: { id: ticketId } });
+      expect(mockPrismaService.tickets.delete).toHaveBeenCalledWith({ where: { id: ticketId } });
+      expect(result).toEqual({ message: `Ticket with ID ${ticketId} has been deleted successfully.` });
+    });
+  });
+
+  // ========= Reopend Ticket ===========
+  describe('Reopend Ticket', () => {
+    const ticketId = 101;
+    const creatorId = 10;
+    const otherUserId = 20;
+
+    it('should throw if ticket is not found', async () => {
+      mockPrismaService.tickets.findUnique.mockResolvedValue(null);
+
+      await expect(service.reopenTicket(ticketId, creatorId)).rejects.toThrow(BadRequestException);
+      expect(mockPrismaService.tickets.findUnique).toHaveBeenCalledWith({
+        where: { id: ticketId },
+        select: { id: true, creatorId: true, currentStatusId: true },
+      });
+    });
+
+    it('should throw if user is not the creator', async () => {
+      mockPrismaService.tickets.findUnique.mockResolvedValue({
+        id: ticketId,
+        creatorId,
+        currentStatusId: 4,
+      });
+
+      await expect(service.reopenTicket(ticketId, otherUserId)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw if ticket is not CLOSED', async () => {
+      mockPrismaService.tickets.findUnique.mockResolvedValue({
+        id: ticketId,
+        creatorId,
+        currentStatusId: 2, // Not closed
+      });
+
+      await expect(service.reopenTicket(ticketId, creatorId)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reopen the ticket successfully', async () => {
+      mockPrismaService.tickets.findUnique.mockResolvedValue({
+        id: ticketId,
+        creatorId,
+        currentStatusId: 4, // CLOSED
+      });
+
+      mockPrismaService.ticketStatus.create.mockResolvedValue({});
+      mockPrismaService.tickets.update.mockResolvedValue({});
+
+      const result = await service.reopenTicket(ticketId, creatorId, 'Reopening for further review');
+
+      expect(mockPrismaService.ticketStatus.create).toHaveBeenCalledWith({
+        data: {
+          ticketId,
+          statusId: 5,
+          changnedBy: creatorId,
+          comment: 'Reopening for further review',
+        },
+      });
+
+      expect(mockPrismaService.tickets.update).toHaveBeenCalledWith({
+        where: { id: ticketId },
+        data: {
+          currentStatusId: 5,
+        },
+      });
+
+      expect(result).toEqual({ message: 'Ticket reopened successfully' });
+    });
+
+  });
+
 });
