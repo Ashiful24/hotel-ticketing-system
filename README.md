@@ -32,8 +32,6 @@ A fully functional **Hotel Ticketing and Issue Management System** built using *
 | Auth          | JWT + Password Hashing |
 | Validation    | class-validator, class-transformer |
 | Testing       | Jest                   |
-| Dev Tools     | ESLint, Prettier, Dotenv |
-| Deployment    | (Optional) Docker / Railway / Render |
 
 ---
 
