@@ -1,12 +1,10 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { Roles } from '@/auth/roles.decorator';
+import { RolesGuard } from '@/auth/roles.guard';
 import { DepartmentService } from './department.service';
 import { CreateDepartmentDto } from './dto/create-department-dto';
 import { UpdateDepartmentDto } from './dto/update-department-dto';
-import { AssignDepartmentDto } from './dto/assign-department-dto';
-import { UnAssignDepartmentDto } from './unassign-department-dto';
-import { Roles } from 'src/roles/roles.decorator';
-import { AuthGuard } from 'src/auth/auth.guard';
-import { RolesGuard } from 'src/roles/roles.guard';
 
 @UseGuards(AuthGuard, RolesGuard)
 @Controller('department')
@@ -40,21 +38,4 @@ export class DepartmentController {
 
         await this.departmentService.deleteDepartment(id);
     }
-
-    @Roles("Admin")
-    @Post('/assign')
-    async assignDepartment( @Body() assignDto: AssignDepartmentDto) 
-    {
-
-        return await this.departmentService.assignDepartment(assignDto);
-    }
-
-    @Roles("Admin")
-    @Post('/unassign')
-    async unassignDepartment( @Body() unassignDto: UnAssignDepartmentDto) 
-    {
-
-        return await this.departmentService.unassignDepartment(unassignDto);
-    }
-
 }

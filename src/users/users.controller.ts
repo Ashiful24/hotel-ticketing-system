@@ -1,10 +1,10 @@
+import { Roles } from '@/auth/roles.decorator';
+import { RolesGuard } from '@/auth/roles.guard';
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { AuthGuard } from 'src/auth/auth.guard';
 import { CreateUserDto } from './dto/create-user-dto';
 import { UpdateUserDto } from './dto/update-user-dto';
-import { AuthGuard } from 'src/auth/auth.guard';
-import { RolesGuard } from 'src/roles/roles.guard';
-import { Roles } from 'src/roles/roles.decorator';
+import { UsersService } from './users.service';
 
 @Controller('users')
 export class UsersController {
@@ -18,7 +18,7 @@ export class UsersController {
     }
 
     //get all users details
-    
+
     @UseGuards(AuthGuard, RolesGuard)
     @Roles("Admin", "Staff")
     @Get('/all')
@@ -26,31 +26,6 @@ export class UsersController {
 
         return await this.userService.allUser();
     }
-
-    //get staff user 
-    @Get('/staff')
-    async staffUSerDetails(){
-        return await this.userService.staffUser();
-    }
-
-    //get manager user 
-    @Get('/manager')
-    async managerUSerDetails(){
-        return await this.userService.managerUser();
-    }
-
-    //get admin user 
-    @Get('/admin')
-    async adminUSerDetails(){
-        return await this.userService.adminUser();
-    }
-
-    //get admin user 
-    @Get('/guest')
-    async guestUSerDetails(){
-        return await this.userService.guestUser();
-    }
-
 
     // get a  single user
     @Get(':id')

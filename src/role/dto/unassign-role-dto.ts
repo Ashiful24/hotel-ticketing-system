@@ -1,13 +1,13 @@
 import { IsNotEmpty, IsNumber } from "class-validator";
 
-export  class UnAssignUserTypeDto{
+export class UnAssignUserRoleDto{
 
     @IsNumber()
     @IsNotEmpty()
-    "userId":number;
+    staffId : number;
 
     @IsNumber()
     @IsNotEmpty()
-    "usertypeId" : number;
+    roleId: number;
 
 }

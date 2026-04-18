@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { Priority } from "@prisma/client";
+import { IsEnum, IsNotEmpty, IsNumber, IsString } from "class-validator";
 
 export class UpdateTicketDto {
 
@@ -14,11 +15,9 @@ export class UpdateTicketDto {
   @IsString()
   description: string;
 
-  @IsNumber()
+  @IsEnum(Priority)
   @IsNotEmpty()
-  priorityId: number;
-  
-  @IsNumber()
-  @IsNotEmpty()
-  issueTypeId: number;
+  priority: Priority;
+
+
 }

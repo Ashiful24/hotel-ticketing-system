@@ -2,8 +2,8 @@ import { BadRequestException, Body, Controller, DefaultValuePipe, Delete, Get, P
 import { AuthGuard } from 'src/auth/auth.guard';
 import { CreateTicketDto } from './dto/create-ticket-dto';
 import { TicketCreationService } from './ticket-creation.service';
-import { RolesGuard } from 'src/roles/roles.guard';
-import { Roles } from 'src/roles/roles.decorator';
+import { RolesGuard } from '@/auth/roles.guard';
+import { Roles } from '@/auth/roles.decorator';
 import { UpdateTicketDto } from './dto/update-ticket-dto';
 import { AuditInterceptor } from 'src/audit/audit.interceptor';
 import { UseInterceptors } from '@nestjs/common';
@@ -53,13 +53,6 @@ export class TicketCreationController {
 
 
 
-  @UseInterceptors(AuditInterceptor)
-  @Put('reopen/:id')
-  @UseGuards(AuthGuard)
-  async reopenTicket(@Param('id', ParseIntPipe) id: number, @Req() req) {
-    const userId = req.user.id;
-    return this.ticketCreationService.reopenTicket(id, userId, "Your Ticket has been Reopened Successfully");
-  }
 
   
   @UseGuards(AuthGuard)

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/prisma.service';
 import { CreateUserDto } from './dto/create-user-dto';
-import * as bcrypt from 'bcryptjs';
 import { UpdateUserDto } from './dto/update-user-dto';
 
 @Injectable()
@@ -39,59 +39,14 @@ export class UsersService {
         return await this.prismaService.user.findMany();
     }
 
-    async staffUser(){
-        return this.prismaService.user.findMany({
-            where: {
-                userTypes: {
-                    some: {
-                        usertypeId: 2
-                    }
-                }
-            }
-        })
-    }
 
-    async managerUser(){
-        return this.prismaService.user.findMany({
-            where: {
-                userTypes: {
-                    some: {
-                        usertypeId: 3
-                    }
-                }
-            }
-        })
-    }
 
-    async adminUser(){
-        return this.prismaService.user.findMany({
-            where: {
-                userTypes: {
-                    some: {
-                        usertypeId: 4
-                    }
-                }
-            }
-        })
-    }
-
-    async guestUser(){
-        return this.prismaService.user.findMany({
-            where: {
-                userTypes: {
-                    some: {
-                        usertypeId: 1
-                    }
-                }
-            }
-        })
-    }
 
 
     async getAUser(id: number) {
         const user = await this.prismaService.user.findUnique({
             where: { id: id },
-            include: { userTypes: true, userRoles: true, departments: true }
+
         })
 
         //cheack if the user exist or not

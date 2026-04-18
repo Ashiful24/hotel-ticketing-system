@@ -1,10 +1,18 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsNotEmpty, IsNumber, isNumber, IsOptional, IsString } from "class-validator";
 
-export class CreateDepartmentDto{
+export class CreateDepartmentDto {
 
     @IsString()
     @IsNotEmpty()
-    departmentName: string;
+    name: string;
+
+    @IsString()
+    @IsOptional()
+    description: string;
+
+    @IsNumber()
+    @IsOptional()
+    supervisorId: number;
 
 
 }

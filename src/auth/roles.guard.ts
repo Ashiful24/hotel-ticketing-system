@@ -18,12 +18,12 @@ export class RolesGuard implements CanActivate {
     const userId = req['user']?.id;
     if (!userId) throw new ForbiddenException('User not found');
 
-    const roles = await this.prisma.user_userType.findMany({
-      where: { userId: userId },
-      include: { userType: true },
+    const roles = await this.prisma.user.findMany({
+      where: { id: userId },
+   
     });
 
-    const userRoles = roles.map(r => r.userType.userTypeName);
+    const userRoles = roles.map(r => r.userType);
 
     const hasRole = userRoles.some(role => requiredRoles.includes(role));
     if (!hasRole) throw new ForbiddenException('Insufficient permissions');

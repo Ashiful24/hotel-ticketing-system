@@ -1,12 +1,13 @@
 import { IsNotEmpty, IsNumber } from "class-validator";
 
-export class TickettAssignmentDto{
+export class AssignUserRoleDto{
 
     @IsNumber()
     @IsNotEmpty()
-    ticketId : number;
+    staffId : number;
 
     @IsNumber()
     @IsNotEmpty()
-    assignTo : number;
+    roleId: number;
+
 }
