@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '@/prisma.service';
 import { CreateRoleDto } from './dto/create-role-dto';
 import { UpdateRoleDto } from './dto/update-role-dto';
 import { AssignUserRoleDto } from './dto/assign-role-dto';

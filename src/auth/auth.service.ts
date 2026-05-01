@@ -1,31 +1,30 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { PrismaService } from 'src/prisma.service';
+import { plainToInstance } from 'class-transformer';
+import { PrismaService } from '@/prisma.service';
+import { ChangePasswordDto } from './dto/change-password-dto';
 import { LoginDto } from './dto/login-dto';
+import { UserResponseDto } from 'src/users/dto/user-response.dto';
 
 @Injectable()
 export class AuthService {
     constructor(private prismaService: PrismaService,
-        private jwtService: JwtService
+        private jwtService: JwtService,
     ) { }
 
-
-
-    async login(loginDto: LoginDto): Promise<{ accessToken: string }> {
-        // Find the user based on email
+    public async login(loginDto: LoginDto): Promise<{ accessToken: string; user: UserResponseDto }> {
         const user = await this.prismaService.user.findUnique({
             where: {
                 email: loginDto.email
             }
-        })
-        if (!user) throw new UnauthorizedException("User not fonud");
+        });
 
-        // decrypt password and compare 
+        if (!user) throw new UnauthorizedException('User not found');
+
         const isMatch = await bcrypt.compare(loginDto.password, user.password);
-        if (!isMatch) throw new UnauthorizedException("Password not matched");
+        if (!isMatch) throw new UnauthorizedException('Password not matched');
 
-        // return  web token
         const accessToken = await this.jwtService.signAsync({
             email: user.email,
             id: user.id
@@ -33,7 +32,35 @@ export class AuthService {
             { expiresIn: '1d' }
         );
 
-        return { accessToken };
+        const userResponse = plainToInstance(UserResponseDto, user, {
+            excludeExtraneousValues: true,
+        });
 
+        return { accessToken, user: userResponse };
+    }
+
+    public async changePassword(changePasswordDto: ChangePasswordDto) {
+        const { userId, currentPassword, newPassword } = changePasswordDto;
+
+        const user = await this.prismaService.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            throw new UnauthorizedException('Current password does not match');
+        }
+
+        const hash = await bcrypt.hash(newPassword, 10);
+        await this.prismaService.user.update({
+            where: { id: userId },
+            data: { password: hash }
+        });
+
+        return { message: 'Password changed successfully' };
     }
 }

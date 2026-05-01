@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { TicketStatus } from '@prisma/client';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '@/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket-dto';
 import { UpdateTicketDto } from './dto/update-ticket-dto';
 

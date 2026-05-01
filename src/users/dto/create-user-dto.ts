@@ -35,8 +35,8 @@ export class CreateUserDto {
     @IsOptional()
     profileImg?: string
 
-    @IsEnum([UserType.ADMIN, UserType.STAFF, UserType.FRONTDESK, UserType.SUPERVISOR])
+    @IsEnum(UserType)
     @IsNotEmpty()
-    userType: UserType
+    userType: UserType;
 
 }

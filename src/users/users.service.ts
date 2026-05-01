@@ -1,8 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { UserType } from '@prisma/client';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Prisma, UserType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { plainToInstance } from 'class-transformer';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '@/prisma.service';
 import { CreateUserDto } from './dto/create-user-dto';
 import { UpdateUserDto } from './dto/update-user-dto';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -22,6 +22,15 @@ export class UsersService {
             });
         }
 
+        const exsitingPhone = await this.getUserByPhone(createUserDto.phone);
+
+        if (exsitingPhone) {
+            throw new BadRequestException('Try to creating user with existing phone', {
+                cause: new Error(),
+                description: 'Duplicate Phone not allow',
+            });
+        }
+
         //encryted password using bcryptjs
         const hash = await bcrypt.hash(createUserDto.password, 10)
         createUserDto.password = hash;
@@ -29,13 +38,20 @@ export class UsersService {
 
 
         // save data into database
-        const user = await this.prismaService.user.create({
-            data: createUserDto,
-        })
+        try {
+            const user = await this.prismaService.user.create({
+                data: createUserDto,
+            });
 
-        return plainToInstance(UserResponseDto, user, {
-            excludeExtraneousValues: true,
-        });
+            return plainToInstance(UserResponseDto, user, {
+                excludeExtraneousValues: true,
+            });
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+                throw new BadRequestException('Duplicate field value. Please use another value.');
+            }
+            throw new InternalServerErrorException('Unable to create user.');
+        }
     }
 
 
@@ -67,6 +83,17 @@ export class UsersService {
 
     }
 
+    public async getUserByPhone(phone: string) {
+        const user = await this.prismaService.user.findUnique({
+            where: { phone: phone }
+        });
+
+        return plainToInstance(UserResponseDto, user, {
+            excludeExtraneousValues: true,
+        });
+
+    }
+
 
     public async getAUser(id: number) {
         const user = await this.prismaService.user.findUnique({
@@ -89,13 +116,21 @@ export class UsersService {
 
 
         //update user data
-        const updatedUser = await this.prismaService.user.update({
-            where: { id: id },
-            data: updateUserDto
-        })
-        return plainToInstance(UserResponseDto, updatedUser, {
-            excludeExtraneousValues: true,
-        });
+        try {
+            const updatedUser = await this.prismaService.user.update({
+                where: { id: id },
+                data: updateUserDto,
+            });
+
+            return plainToInstance(UserResponseDto, updatedUser, {
+                excludeExtraneousValues: true,
+            });
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+                throw new BadRequestException('Duplicate field value. Please use another value.');
+            }
+            throw new InternalServerErrorException('Unable to update user.');
+        }
     }
 
     async deleteUser(id: number) {

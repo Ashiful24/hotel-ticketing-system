@@ -4,15 +4,15 @@ export class UpdateDepartmentDto {
 
     @IsString()
     @IsOptional()
-    departmentName: string;
+    name?: string;
 
     @IsString()
     @IsOptional()
-    description: string;
+    description?: string;
 
     @IsNumber()
     @IsOptional()
-    supervisorId: number;
+    supervisorId?: number;
 
 
 }
