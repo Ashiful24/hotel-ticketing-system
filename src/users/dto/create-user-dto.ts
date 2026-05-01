@@ -27,6 +27,14 @@ export class CreateUserDto {
     @IsNotEmpty()
     nid: string
 
+    @IsString()
+    @IsOptional()
+    address?: string
+
+    @IsString()
+    @IsOptional()
+    profileImg?: string
+
     @IsEnum([UserType.ADMIN, UserType.STAFF, UserType.FRONTDESK, UserType.SUPERVISOR])
     @IsNotEmpty()
     userType: UserType

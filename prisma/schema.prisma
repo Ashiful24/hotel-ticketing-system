@@ -41,8 +41,10 @@ model User {
   password  String
   phone     String  @unique
   nid       String  @unique
+  address   String?
+  profileImg String?
 
-  userType UserType
+  userType UserType @default(STAFF)
 
   createdAt DateTime @default(now())
 

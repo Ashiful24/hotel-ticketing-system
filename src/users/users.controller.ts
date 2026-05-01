@@ -1,7 +1,8 @@
 import { Roles } from '@/auth/roles.decorator';
 import { RolesGuard } from '@/auth/roles.guard';
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseEnumPipe, ParseIntPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { UserType } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user-dto';
 import { UpdateUserDto } from './dto/update-user-dto';
 import { UsersService } from './users.service';
@@ -19,12 +20,21 @@ export class UsersController {
 
     //get all users details
 
-    @UseGuards(AuthGuard, RolesGuard)
-    @Roles("Admin", "Staff")
+    // @UseGuards(AuthGuard, RolesGuard)
+    // @Roles("Admin", "Staff")
     @Get('/all')
     async alluserDetails() {
 
         return await this.userService.allUser();
+    }
+
+    // @UseGuards(AuthGuard, RolesGuard)
+    // @Roles("Admin")
+    @Get('/by-type')
+    async getUsersByType(
+        @Query('userType', new ParseEnumPipe(UserType)) userType: UserType,
+    ) {
+        return await this.userService.getUsersByType(userType);
     }
 
     // get a  single user
