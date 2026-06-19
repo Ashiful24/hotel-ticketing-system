@@ -15,7 +15,7 @@ import { DepartmentService } from './department.service';
 import { CreateDepartmentDto } from './dto/create-department-dto';
 import { UpdateDepartmentDto } from './dto/update-department-dto';
 
-@UseGuards(AuthGuard, RolesGuard)
+//@UseGuards(AuthGuard, RolesGuard)
 @Controller('department')
 export class DepartmentController {
   constructor(private departmentService: DepartmentService) {}

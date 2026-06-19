@@ -58,4 +58,6 @@ export class UserrolesController {
   async unassignRole(@Body() usassignDto: UnAssignUserRoleDto) {
     return await this.userRoleService.unassignRole(usassignDto);
   }
+
+  //get staffs by role and department id
 }

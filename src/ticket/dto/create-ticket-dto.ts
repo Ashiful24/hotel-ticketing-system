@@ -1,11 +1,16 @@
-import { Priority } from "@prisma/client";
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { Priority } from '@prisma/client';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateTicketDto {
-
   @IsNumber()
-  @IsNotEmpty()
-  roomNumber: number;
+  @IsOptional()
+  roomNumber?: number;
 
   @IsNotEmpty()
   @IsString()
@@ -15,10 +20,6 @@ export class CreateTicketDto {
   @IsString()
   description?: string;
 
-  @IsOptional()
-  @IsString()
-  feedback?: string;
-
   @IsEnum(Priority)
   @IsNotEmpty()
   priority: Priority;
@@ -26,5 +27,4 @@ export class CreateTicketDto {
   @IsNumber()
   @IsNotEmpty()
   departmentId: number;
-
 }
