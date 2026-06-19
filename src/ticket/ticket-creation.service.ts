@@ -1,6 +1,6 @@
 import { PrismaService } from '@/prisma.service';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { TicketStatus } from '@prisma/client';
+import { Priority, TicketStatus } from '@prisma/client';
 import { CreateTicketDto } from './dto/create-ticket-dto';
 import { UpdateTicketDto } from './dto/update-ticket-dto';
 
@@ -28,15 +28,14 @@ export class TicketCreationService {
       });
       this.logger.log(`Ticket created successfully with ID: ${ticket.id}`);
 
-      if (ticket) {
-        this.prismaService.ticketStatusHistory.create({
-          data: {
-            ticketId: ticket.id,
-            status: TicketStatus.OPEN,
-            changedBy: userId,
-          },
-        });
-      }
+      await this.prismaService.ticketStatusHistory.create({
+        data: {
+          ticketId: ticket.id,
+          status: TicketStatus.OPEN,
+          changedBy: userId,
+        },
+      });
+
       return ticket;
     } catch (error) {
       this.logger.error(`Failed to create ticket for user ID: ${userId}`);
@@ -70,6 +69,9 @@ export class TicketCreationService {
 
     const ticket = await this.prismaService.ticket.findUnique({
       where: { id: id },
+      include: {
+        history: true,
+      },
     });
 
     if (!ticket) {
@@ -86,13 +88,11 @@ export class TicketCreationService {
     page: number,
     limit: number,
     filters: {
-      issueCategoryId?: number;
-      issueTypeId?: number;
-      priorityId?: number;
-      statusId?: number;
+      priority?: Priority;
       date?: Date;
+      departmentId?: number;
     },
-    tab?: 'unassigned' | 'resolved' | 'due',
+    tab?: TicketStatus,
     searchQuery?: number,
     searchField?: 'ticketId' | 'creatorId' | 'assigneeId',
   ) {
@@ -120,41 +120,35 @@ export class TicketCreationService {
       }
     }
 
-    if (tab === 'unassigned') {
+    if (tab === TicketStatus.OPEN) {
       this.logger.log('Filtering for unassigned tickets');
-      where.assignment = { none: {} };
-    } else if (tab === 'resolved') {
-      this.logger.log('Filtering for resolved tickets');
-      where.currentStatusId = 3;
-    } else if (tab === 'due') {
-      this.logger.log('Filtering for due tickets');
-      where.currentStatusId = { in: [1, 2, 5] };
+      where.status = TicketStatus.OPEN;
+    } else if (tab === TicketStatus.ASSIGNED) {
+      this.logger.log('Filtering for assigned tickets');
+      where.status = TicketStatus.ASSIGNED;
+    } else if (tab === TicketStatus.IN_PROGRESS) {
+      this.logger.log('Filtering for running tickets');
+      where.status = TicketStatus.IN_PROGRESS;
+    } else if (tab === TicketStatus.DONE) {
+      this.logger.log('Filtering for complete tickets');
+      where.status = TicketStatus.DONE;
+    } else if (tab === TicketStatus.VERIFIED) {
+      this.logger.log('Filtering for varified tickets');
+      where.status = TicketStatus.VERIFIED;
+    } else if (tab === TicketStatus.CLOSED) {
+      this.logger.log('Filtering for colse tickets');
+      where.status = TicketStatus.CLOSED;
+    } else if (tab === TicketStatus.REOPENED) {
+      this.logger.log('Filtering for reopne tickets');
+      where.status = TicketStatus.REOPENED;
+    } else if (tab === TicketStatus.CANCELLED) {
+      this.logger.log('Filtering for cancelled tickets');
+      where.status = TicketStatus.CANCELLED;
     }
 
-    if (filters.priorityId) {
-      this.logger.log(`Filtering by priorityId: ${filters.priorityId}`);
-      where.priorityId = filters.priorityId;
-    }
-
-    if (filters.issueCategoryId) {
-      this.logger.log(
-        `Filtering by issueCategoryId: ${filters.issueCategoryId}`,
-      );
-      where.issueType = {
-        department: {
-          id: filters.issueCategoryId,
-        },
-      };
-    }
-
-    if (filters.issueTypeId) {
-      this.logger.log(`Filtering by issueTypeId: ${filters.issueTypeId}`);
-      where.issueTypeId = filters.issueTypeId;
-    }
-
-    if (filters.statusId) {
-      this.logger.log(`Filtering by statusId: ${filters.statusId}`);
-      where.currentStatusId = filters.statusId;
+    if (filters.priority) {
+      this.logger.log(`Filtering by priorityId: ${filters.priority}`);
+      where.priority = filters.priority;
     }
 
     if (filters.date) {
@@ -167,6 +161,11 @@ export class TicketCreationService {
         gte: selectedDate,
         lt: nextDay,
       };
+    }
+
+    if (filters.departmentId) {
+      this.logger.log(`Filtering by priorityId: ${filters.priority}`);
+      where.departmentId = filters.departmentId;
     }
 
     this.logger.log('Fetching tickets from the database...');

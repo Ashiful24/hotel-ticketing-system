@@ -16,6 +16,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Priority, TicketStatus } from '@prisma/client';
 import { AuditInterceptor } from 'src/audit/audit.interceptor';
 import { CreateTicketDto } from './dto/create-ticket-dto';
 import { UpdateTicketDto } from './dto/update-ticket-dto';
@@ -49,17 +50,14 @@ export class TicketCreationController {
   async getAllTicketDetails(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(5), ParseIntPipe) limit: number,
-    @Query('tab') tab?: 'unassigned' | 'resolved' | 'due',
+    @Query('tab') tab?: TicketStatus,
     @Query('searchQuery', new ParseIntPipe({ optional: true }))
     searchQuery?: number,
     @Query('searchField') searchField?: 'ticketId' | 'creatorId' | 'assigneeId',
-    @Query('issueCategoryId', new ParseIntPipe({ optional: true }))
-    issueCategoryId?: number,
-    @Query('issueTypeId', new ParseIntPipe({ optional: true }))
-    issueTypeId?: number,
-    @Query('priorityId', new ParseIntPipe({ optional: true }))
-    priorityId?: number,
-    @Query('statusId', new ParseIntPipe({ optional: true })) statusId?: number,
+
+    @Query('priority')
+    priority?: Priority,
+     @Query('departmentId', new ParseIntPipe({ optional: true })) departmentId?: number,
     @Query('date', new ParseDatePipe({ optional: true })) date?: Date,
   ) {
     if (searchField && !searchQuery) {
@@ -74,7 +72,7 @@ export class TicketCreationController {
     return this.ticketCreationService.getAllTicketDetails(
       page,
       limit,
-      { priorityId, issueTypeId, statusId, issueCategoryId, date },
+      { priority, date , departmentId },
       tab,
       searchQuery,
       effectiveSearchField,
