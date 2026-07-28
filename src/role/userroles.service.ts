@@ -89,6 +89,36 @@ export class UserrolesService {
         });
     }
 
+    async getStaffByRoleId(roleId: number) {
+        const role = await this.getRoleById(roleId);
+        if (!role) throw new NotFoundException('Role not found');
+
+        const assignments = await this.prismaService.staffRole.findMany({
+            where: { roleId },
+            include: {
+                staff: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                        phone: true,
+                        userType: true,
+                        createdAt: true,
+                    },
+                },
+            },
+        });
+
+        const staff = assignments.map((assignment) => assignment.staff);
+
+        return {
+            roleId,
+            totalStaff: staff.length,
+            staff,
+        };
+    }
+
     async assignRole(assignDto: AssignUserRoleDto){
         await this.checkUserExists(assignDto.staffId);
         await this.checkRoleExists(assignDto.roleId);

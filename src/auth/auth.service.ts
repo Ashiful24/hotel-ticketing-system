@@ -39,8 +39,8 @@ export class AuthService {
         return { accessToken, user: userResponse };
     }
 
-    public async changePassword(changePasswordDto: ChangePasswordDto) {
-        const { userId, currentPassword, newPassword } = changePasswordDto;
+    public async changePassword(userId: number, changePasswordDto: ChangePasswordDto) {
+        const { currentPassword, newPassword } = changePasswordDto;
 
         const user = await this.prismaService.user.findUnique({
             where: { id: userId }
