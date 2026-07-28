@@ -1,70 +1,66 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
-import { SignupDto } from './dto/signup-dto';
-import * as bcrypt from 'bcryptjs';
-import { LoginDto } from './dto/login-dto';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcryptjs';
+import { plainToInstance } from 'class-transformer';
+import { PrismaService } from '@/prisma.service';
+import { ChangePasswordDto } from './dto/change-password-dto';
+import { LoginDto } from './dto/login-dto';
+import { UserResponseDto } from 'src/users/dto/user-response.dto';
 
 @Injectable()
 export class AuthService {
     constructor(private prismaService: PrismaService,
-        private jwtService: JwtService
+        private jwtService: JwtService,
     ) { }
 
-    async signup(signup: SignupDto) {
-
-        // encrypt tha password
-        const hash = await bcrypt.hash(signup.password, 10);
-        signup.password = hash;
-
-        //cheak duplicate user
-        const exsitingUser = await this.prismaService.user.findUnique({
+    public async login(loginDto: LoginDto): Promise<{ accessToken: string; user: UserResponseDto }> {
+        const user = await this.prismaService.user.findUnique({
             where: {
-                email: signup.email
+                email: loginDto.email
             }
         });
-        if (exsitingUser) throw new ConflictException("This Email Allready Used by another user");
 
-        //create user and save the date
-        const user = await this.prismaService.user.create({
-            data: signup,
+        if (!user) throw new UnauthorizedException('User not found');
 
-        })
-
-        //assign user type 
-        await this.prismaService.user_userType.create({
-            data: {
-                userId: user.id,
-                usertypeId: 1
-            }
-        })
-
-        return user;
-
-    }
-
-    async login(loginDto: LoginDto) : Promise<{accessToken : string}>{
-        // Find the user based on email
-        const  user = await this.prismaService.user.findUnique({
-            where : {
-                email : loginDto.email
-            }
-        }) 
-        if (!user) throw new UnauthorizedException("User not fonud");
-        
-        // decrypt password and compare 
         const isMatch = await bcrypt.compare(loginDto.password, user.password);
-        if(!isMatch) throw new UnauthorizedException("Password not matched");
+        if (!isMatch) throw new UnauthorizedException('Password not matched');
 
-        // return  web token
         const accessToken = await this.jwtService.signAsync({
-            email : user.email,
+            email: user.email,
             id: user.id
         },
-      {expiresIn: '1d'} 
-    );
+            { expiresIn: '1d' }
+        );
 
-    return {accessToken};
+        const userResponse = plainToInstance(UserResponseDto, user, {
+            excludeExtraneousValues: true,
+        });
 
+        return { accessToken, user: userResponse };
+    }
+
+    public async changePassword(userId: number, changePasswordDto: ChangePasswordDto) {
+        const { currentPassword, newPassword } = changePasswordDto;
+
+        const user = await this.prismaService.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            throw new UnauthorizedException('Current password does not match');
+        }
+
+        const hash = await bcrypt.hash(newPassword, 10);
+        await this.prismaService.user.update({
+            where: { id: userId },
+            data: { password: hash }
+        });
+
+        return { message: 'Password changed successfully' };
     }
 }

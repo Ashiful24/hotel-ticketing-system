@@ -1,94 +1,143 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '@/prisma.service';
+import { UsersService } from '@/users/users.service';
+import { safePrismaOperation } from '@/utils/prisma-utils';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { UserType } from '@prisma/client';
 import { CreateDepartmentDto } from './dto/create-department-dto';
 import { UpdateDepartmentDto } from './dto/update-department-dto';
-import { AssignDepartmentDto } from './dto/assign-department-dto';
-import { UnAssignDepartmentDto } from './unassign-department-dto';
 
 @Injectable()
 export class DepartmentService {
+  constructor(
+    private prismaService: PrismaService,
+    private readonly userService: UsersService,
+  ) {}
 
-    constructor(private prismaService: PrismaService) { }
+  public getDepartmentById(id: number) {
+    return this.prismaService.department.findUnique({ where: { id: id } });
+  }
 
-    async addNewDepartment(createDepartmentDTO: CreateDepartmentDto) {
+  public getDepartmentByCode(code: string) {
+    return this.prismaService.department.findUnique({ where: { code: code } });
+  }
 
-        // Cheak duplicate Department
-        const department = await this.prismaService.department.findUnique({ where: { departmentName: createDepartmentDTO.departmentName } })
-        if (department) throw new BadRequestException('All ready has the Department');
+  public getDepartmentBySupervisorId(supervisorId: number) {
+    return this.prismaService.department.findUnique({
+      where: { supervisorId: supervisorId },
+    });
+  }
 
+  async getDepartmentBySupervisorIdOrThrow(supervisorId: number) {
+    const department = await this.getDepartmentBySupervisorId(supervisorId);
+    if (!department) {
+      throw new NotFoundException('Department not found for this supervisor');
+    }
+    return department;
+  }
 
-        return await this.prismaService.department.create({
-            data: createDepartmentDTO,
-        })
+  async createDepartment(dto: CreateDepartmentDto) {
+    const { code, supervisorId, name, description } = dto;
+
+    // Run checks in parallel
+    const [existingDepartment, existingSupervisorDepartment, user] =
+      await Promise.all([
+        this.getDepartmentByCode(code),
+        supervisorId
+          ? this.getDepartmentBySupervisorId(supervisorId)
+          : Promise.resolve(null),
+        supervisorId
+          ? this.userService.getAUser(supervisorId)
+          : Promise.resolve(null),
+      ]);
+
+    // Duplicate code check
+    if (existingDepartment) {
+      throw new BadRequestException('Department with this code already exists');
     }
 
-    async getDepartmentList() {
-        return await this.prismaService.department.findMany();
+    // Supervisor validations
+    if (supervisorId) {
+      if (!user) {
+        throw new BadRequestException('Supervisor not found');
+      }
+
+      if (user.userType !== UserType.SUPERVISOR) {
+        throw new BadRequestException('User is not a supervisor');
+      }
+
+      if (existingSupervisorDepartment) {
+        throw new BadRequestException(
+          'This supervisor is already assigned to another department',
+        );
+      }
     }
 
-    async updateDepartment(id: number, updateDepartmentDto: UpdateDepartmentDto) {
+    return await safePrismaOperation(() =>
+      this.prismaService.department.create({
+        data: dto,
+      }),
+    );
+  }
 
-        // Cheack the Department exist or  not
-        const department = await this.prismaService.department.findUnique({ where: { id: id } });
-        if (!department) throw new NotFoundException("Department Not Founed");
+  async getDepartmentList() {
+    return await this.prismaService.department.findMany();
+  }
 
-        return await this.prismaService.department.update({
-            where: { id: id },
-            data: updateDepartmentDto
-        })
+  async updateDepartment(id: number, updateDepartmentDto: UpdateDepartmentDto) {
+    // Check the Department exist or not
+    const department = await this.getDepartmentById(id);
+    if (!department) throw new NotFoundException('Department Not Found');
+
+    // Supervisor validations if supervisorId is provided
+    if (updateDepartmentDto.supervisorId !== undefined) {
+      if (updateDepartmentDto.supervisorId !== department.supervisorId) {
+        // Only validate if changing supervisor
+        const [user, existingSupervisorDepartment] = await Promise.all([
+          updateDepartmentDto.supervisorId
+            ? this.userService.getAUser(updateDepartmentDto.supervisorId)
+            : Promise.resolve(null),
+          updateDepartmentDto.supervisorId
+            ? this.getDepartmentBySupervisorId(updateDepartmentDto.supervisorId)
+            : Promise.resolve(null),
+        ]);
+
+        if (updateDepartmentDto.supervisorId) {
+          if (!user) {
+            throw new BadRequestException('Supervisor not found');
+          }
+
+          if (user.userType !== UserType.SUPERVISOR) {
+            throw new BadRequestException('User is not a supervisor');
+          }
+
+          if (existingSupervisorDepartment) {
+            throw new BadRequestException(
+              'This supervisor is already assigned to another department',
+            );
+          }
+        }
+      }
     }
 
-    async deleteDepartment(id: number) {
+    return await safePrismaOperation(() =>
+      this.prismaService.department.update({
+        where: { id: id },
+        data: updateDepartmentDto,
+      }),
+    );
+  }
 
-        // Cheack the Department exist or  not
-        const department = await this.prismaService.department.findUnique({ where: { id: id } });
-        if (!department) throw new NotFoundException("Department Not Founed");
+  async deleteDepartment(id: number) {
+    // Check the Department exist or not
+    const department = await this.getDepartmentById(id);
+    if (!department) throw new NotFoundException('Department Not Found');
 
-        return await this.prismaService.department.delete({
-            where: { id: id },
-        })
-    }
-
-    async assignDepartment(assignDto: AssignDepartmentDto){
-
-        // cheack user exist 
-        const user = await this.prismaService.user.findUnique({where: {id : assignDto.userId}})
-        if (!user) throw new NotFoundException("User not found or created");
-
-        // cheack department exist
-        const department = await this.prismaService.department.findUnique({where: {id: assignDto.departmentId}});
-        if (!department) throw new NotFoundException("Department not found or created");
-
-        // cheack duplication
-        const exist = await this.prismaService.user_department.findFirst({
-            where: {
-                userId : assignDto.userId,
-                departmentId: assignDto.departmentId
-            }
-        })
-        if(exist) throw new ConflictException("This user already has this Department")
-
-        // Assign department to user
-        return await this.prismaService.user_department.create({
-            data: assignDto
-        })
-    }
-
-    async unassignDepartment(unassignDto : UnAssignDepartmentDto){
-        
-        //cheack assignment exist 
-        const exist = await this.prismaService.user_department.findFirst({
-            where: {
-                userId : unassignDto.userId,
-                departmentId: unassignDto.departmentId
-            }
-        })
-        if(!exist) throw new NotFoundException("Assignment not found");
-
-        //delete the assignment
-        return await this.prismaService.user_department.delete({
-            where: {id: exist.id}
-        })
-    }
-
+    return await this.prismaService.department.delete({
+      where: { id: id },
+    });
+  }
 }
