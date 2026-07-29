@@ -29,7 +29,7 @@ export class DepartmentController {
   }
 
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles(UserType.ADMIN)
+  @Roles(UserType.ADMIN, UserType.FRONTDESK)
   @Get('/list')
   async getAllDepartment() {
     return this.departmentService.getDepartmentList();
