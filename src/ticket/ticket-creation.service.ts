@@ -322,7 +322,47 @@ export class TicketCreationService {
     const ticket = await this.prismaService.ticket.findUnique({
       where: { id: id },
       include: {
-        history: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            userType: true,
+          },
+        },
+        assignee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            userType: true,
+          },
+        },
+        history: {
+          orderBy: { changedAt: 'asc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                userType: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -434,6 +474,26 @@ export class TicketCreationService {
       where,
       take: limit,
       skip: skip,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        department: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        assignee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            userType: true,
+          },
+        },
+      },
     });
 
     const totalCount = await this.prismaService.ticket.count({

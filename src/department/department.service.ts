@@ -25,10 +25,38 @@ export class DepartmentService {
     return this.prismaService.department.findUnique({ where: { code: code } });
   }
 
+  private readonly supervisorSelect = {
+    id: true,
+    firstName: true,
+    lastName: true,
+    email: true,
+    phone: true,
+    userType: true,
+  } as const;
+
   public getDepartmentBySupervisorId(supervisorId: number) {
     return this.prismaService.department.findUnique({
       where: { supervisorId: supervisorId },
+      include: {
+        supervisor: { select: this.supervisorSelect },
+      },
     });
+  }
+
+  private withSupervisorName<
+    T extends {
+      supervisor?: {
+        firstName: string | null;
+        lastName: string | null;
+      } | null;
+    },
+  >(department: T) {
+    const firstName = department.supervisor?.firstName?.trim() ?? '';
+    const lastName = department.supervisor?.lastName?.trim() ?? '';
+    const supervisorName =
+      [firstName, lastName].filter(Boolean).join(' ') || null;
+
+    return { ...department, supervisorName };
   }
 
   async getDepartmentBySupervisorIdOrThrow(supervisorId: number) {
@@ -36,7 +64,7 @@ export class DepartmentService {
     if (!department) {
       throw new NotFoundException('Department not found for this supervisor');
     }
-    return department;
+    return this.withSupervisorName(department);
   }
 
   async createDepartment(dto: CreateDepartmentDto) {
@@ -84,7 +112,15 @@ export class DepartmentService {
   }
 
   async getDepartmentList() {
-    return await this.prismaService.department.findMany();
+    const departments = await this.prismaService.department.findMany({
+      include: {
+        supervisor: { select: this.supervisorSelect },
+      },
+    });
+
+    return departments.map((department) =>
+      this.withSupervisorName(department),
+    );
   }
 
   async updateDepartment(id: number, updateDepartmentDto: UpdateDepartmentDto) {

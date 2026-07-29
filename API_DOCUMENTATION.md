@@ -461,9 +461,51 @@ Status history row ও create হয়।
 ### 7.3 Ticket Details
 `GET /ticket/details/:id` · **JWT required**
 
-Returns ticket + `history[]` (status history).
+Returns ticket + nested relations:
 
----
+```json
+{
+  "id": 1,
+  "ticketCode": "TICKET-123",
+  "title": "AC not working",
+  "status": "IN_PROGRESS",
+  "department": { "id": 1, "name": "Housekeeping", "code": "HK" },
+  "creator": {
+    "id": 2,
+    "firstName": "Nadia",
+    "lastName": "Akter",
+    "email": "nadia@hotel.com",
+    "phone": "01722222222",
+    "userType": "FRONTDESK"
+  },
+  "assignee": {
+    "id": 5,
+    "firstName": "Karim",
+    "lastName": "Hossain",
+    "email": "karim@hotel.com",
+    "phone": "01711111111",
+    "userType": "STAFF"
+  },
+  "history": [
+    {
+      "id": 1,
+      "ticketId": 1,
+      "status": "OPEN",
+      "changedBy": 2,
+      "changedAt": "2026-01-01T10:00:00.000Z",
+      "user": {
+        "id": 2,
+        "firstName": "Nadia",
+        "lastName": "Akter",
+        "email": "nadia@hotel.com",
+        "userType": "FRONTDESK"
+      }
+    }
+  ]
+}
+```
+
+`assignee` is `null` when unassigned. History `user` is the person who made that status change (`changedBy`).
 
 ### 7.3.1 Assign Ticket (Supervisor)
 `PUT /ticket/assign/:id` · **JWT + `SUPERVISOR`**
@@ -555,13 +597,34 @@ GET /ticket/list?page=1&limit=10&tab=OPEN&priority=HIGH&departmentId=1
 **Response shape (service return)**
 ```json
 {
-  "data": [ /* tickets */ ],
+  "data": [
+    {
+      "id": 1,
+      "ticketCode": "TICKET-123",
+      "title": "AC not working",
+      "priority": "HIGH",
+      "status": "ASSIGNED",
+      "departmentId": 1,
+      "assignTo": 5,
+      "department": { "id": 1, "name": "Housekeeping", "code": "HK" },
+      "assignee": {
+        "id": 5,
+        "firstName": "Karim",
+        "lastName": "Hossain",
+        "email": "karim@hotel.com",
+        "phone": "01711111111",
+        "userType": "STAFF"
+      }
+    }
+  ],
   "currentPage": 1,
   "itemPerPage": 10,
   "totalItem": 42,
   "totalPages": 5
 }
 ```
+
+`assignee` is `null` when the ticket is unassigned.
 
 **Validation**
 - `searchField` থাকলে `searchQuery` না থাকলে → `400 Bad Request`
